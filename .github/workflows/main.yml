@@ -1,1 +1,52 @@
+name: Build Android App
 
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      - name: Backup main.dart and pubspec.yaml
+        run: |
+          cp lib/main.dart ./main_backup.dart
+          cp pubspec.yaml ./pubspec_backup.yaml
+          rm -rf *
+          flutter create --org com.rutuja.multiservices .
+          cp ./main_backup.dart lib/main.dart
+          cp ./pubspec_backup.yaml pubspec.yaml
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Build App Bundle (AAB)
+        run: flutter build appbundle --release --no-tree-shake-icons
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rutuja-app-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Upload AAB (Play Store)
+        uses: actions/upload-artifact@v4
+        with:
+          name: rutuja-app-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+          
